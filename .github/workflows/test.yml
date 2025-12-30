@@ -104,13 +104,13 @@ jobs:
           echo "============================================"
           df -h
       - name: Verify merged workspace
+        working-directory: /home/runner/work
         run: |
           echo "Checking mount..."
           mount | grep /home/runner/work || true
           df -h /home/runner/work
           echo ""
           echo "Testing write access..."
-          cd /home/runner/work
           echo "test" > test-file.txt
           cat test-file.txt
           rm test-file.txt
@@ -180,6 +180,7 @@ jobs:
           echo "============================================"
           df -h
       - name: Verify Btrfs workspace
+        working-directory: /home/runner/work
         run: |
           echo "Checking mount..."
           mount | grep /home/runner/work || true
@@ -189,7 +190,6 @@ jobs:
           cat /proc/mounts | grep workspace || true
           echo ""
           echo "Testing write access..."
-          cd /home/runner/work
           echo "test" > test-file.txt
           cat test-file.txt
           rm test-file.txt

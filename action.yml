@@ -398,13 +398,33 @@ runs:
           sudo mkfs.btrfs -f /dev/workspace/work
           
           echo ">>> Mounting at /home/runner/work..."
+          # Preserve _actions cache before mounting
+          if [[ -d /home/runner/work/_actions ]]; then
+            echo ">>> Preserving _actions cache..."
+            sudo cp -a /home/runner/work/_actions /tmp/_actions_backup
+          fi
           sudo mount -o compress=zstd /dev/workspace/work /home/runner/work
+          # Restore _actions cache after mounting
+          if [[ -d /tmp/_actions_backup ]]; then
+            echo ">>> Restoring _actions cache..."
+            sudo mv /tmp/_actions_backup /home/runner/work/_actions
+          fi
         else
           echo ">>> Formatting as ext4..."
           sudo mkfs.ext4 -F /dev/workspace/work
           
           echo ">>> Mounting at /home/runner/work..."
+          # Preserve _actions cache before mounting
+          if [[ -d /home/runner/work/_actions ]]; then
+            echo ">>> Preserving _actions cache..."
+            sudo cp -a /home/runner/work/_actions /tmp/_actions_backup
+          fi
           sudo mount /dev/workspace/work /home/runner/work
+          # Restore _actions cache after mounting
+          if [[ -d /tmp/_actions_backup ]]; then
+            echo ">>> Restoring _actions cache..."
+            sudo mv /tmp/_actions_backup /home/runner/work/_actions
+          fi
         fi
         
         # Create swap file on root filesystem

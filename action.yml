@@ -53,6 +53,24 @@ runs:
         sudo du -sm /home/* 2>/dev/null | sort -rn | head -10 || echo "No /home directory"
         echo ""
 
+    - name: Contents of /mnt (secondary disk)
+      shell: bash
+      run: |
+        echo ">>> Contents of /mnt (secondary disk)"
+        echo "--------------------------------------------"
+        if mountpoint -q /mnt 2>/dev/null; then
+          echo "Device: $(df /mnt | tail -1 | awk '{print $1}')"
+          echo "Total: $(df -h /mnt | tail -1 | awk '{print $2}')  Used: $(df -h /mnt | tail -1 | awk '{print $3}')  Free: $(df -h /mnt | tail -1 | awk '{print $4}')"
+          echo ""
+          echo "Contents:"
+          sudo ls -la /mnt 2>/dev/null || true
+          echo ""
+          sudo du -sm /mnt/* 2>/dev/null | sort -rn | head -10 || true
+        else
+          echo "/mnt is not a separate mount point"
+        fi
+        echo ""
+
     - name: Docker images (if present)
       shell: bash
       run: |

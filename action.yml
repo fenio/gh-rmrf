@@ -426,6 +426,7 @@ runs:
     # ============================================
     - name: Summary
       shell: bash
+      working-directory: /
       env:
         MERGE_DISKS: ${{ inputs.merge-disks }}
       run: |

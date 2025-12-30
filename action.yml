@@ -270,6 +270,10 @@ runs:
         # Other bloat
         echo ""
         echo "=== Other ==="
+        # Minikube
+        [[ -f "/usr/local/bin/minikube" ]] && nuke_paths+=("/usr/local/bin/minikube") && echo ">>> Minikube"
+        # Runner cache (actions-runner tarballs)
+        [[ -d "/opt/runner-cache" ]] && nuke_paths+=("/opt/runner-cache") && echo ">>> Runner cache"
         # PowerShell modules
         [[ -d "/usr/local/share/powershell" ]] && nuke_paths+=("/usr/local/share/powershell") && echo ">>> PowerShell modules"
         # Homebrew

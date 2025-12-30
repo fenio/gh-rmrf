@@ -118,11 +118,12 @@ Uses Btrfs with zstd compression for the merged volume.
 
 ### Space gains
 
-| Mode | Approximate free space |
-|------|----------------------|
-| Cleanup only | ~35-40GB on root |
-| Merge (ext4) | ~100GB unified |
-| Merge (Btrfs+zstd) | ~100GB+ (compression dependent) |
+| Mode | Before | After | Free space |
+|------|--------|-------|------------|
+| Cleanup only | 55GB used, 18GB free | 35GB used, 38GB free | **~38GB on root** |
+| Cleanup + nuke | 55GB used, 18GB free | 14GB used, 58GB free | **~58GB on root** |
+| Merge (ext4) | - | - | **~100GB unified** |
+| Merge (Btrfs+zstd) | - | - | **~100GB+ (compression dependent)** |
 
 ## Bloat locations on GitHub runners
 
@@ -140,7 +141,7 @@ Uses Btrfs with zstd compression for the merged volume.
 
 ### Nuke option
 
-The `nuke` option removes additional bloat (~8GB+):
+The `nuke` option aggressively removes additional bloat, freeing **~40GB** total when combined with default cleanup:
 
 | Category | Paths | Size |
 |----------|-------|------|
@@ -148,8 +149,10 @@ The `nuke` option removes additional bloat (~8GB+):
 | Cloud CLIs | Azure, GCloud, AWS CLI, AWS SAM | ~2GB |
 | Databases | PostgreSQL, MySQL | ~0.5GB |
 | Languages | Julia, Miniconda, Rust toolchains | ~2.5GB |
-| Build tools | Gradle, Kotlin, Maven, LLVM | ~2GB |
-| Other | PowerShell, Linuxbrew, Java VMs | ~2GB |
+| Build tools | Gradle, Kotlin, Maven, LLVM versions | ~2GB |
+| Other | PowerShell, Linuxbrew, Java VMs, Minikube, Runner cache | ~2.5GB |
+
+> **Warning:** The nuke option removes tools you might need. Java VMs, LLVM, and build tools are removed. Only use this if you're sure your workflow doesn't depend on these.
 
 ## License
 

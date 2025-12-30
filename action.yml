@@ -39,6 +39,10 @@ inputs:
     description: 'Remove Docker images (~4GB)'
     required: false
     default: 'false'
+  nuke:
+    description: 'Nuke packages via dpkg -L (browsers, databases, cloud CLIs) - experimental'
+    required: false
+    default: 'false'
   merge-disks:
     description: 'Merge root and /mnt into single LVM volume'
     required: false
@@ -177,6 +181,67 @@ runs:
           docker system prune -af || true
         fi
         
+        echo ""
+
+    # ============================================
+    # PHASE 3b: Nuke packages (experimental)
+    # ============================================
+    - name: Nuke packages
+      if: ${{ inputs.nuke == 'true' }}
+      shell: bash
+      run: |
+        echo "============================================"
+        echo "  Nuking packages via dpkg..."
+        echo "============================================"
+        echo ""
+        
+        # Function to nuke a package by removing all its files
+        nuke_package() {
+          local pkg="$1"
+          if dpkg -s "$pkg" &>/dev/null; then
+            echo ">>> Nuking $pkg..."
+            dpkg -L "$pkg" 2>/dev/null | grep -v '/$' | xargs -r sudo /tmp/rmz 2>/dev/null || true
+          fi
+        }
+        
+        # Function to nuke packages matching a pattern
+        nuke_pattern() {
+          local pattern="$1"
+          local desc="$2"
+          local packages=$(dpkg -l | grep -E "^ii\s+$pattern" | awk '{print $2}' || true)
+          if [[ -n "$packages" ]]; then
+            echo ">>> Nuking $desc..."
+            for pkg in $packages; do
+              dpkg -L "$pkg" 2>/dev/null | grep -v '/$' | xargs -r sudo /tmp/rmz 2>/dev/null || true
+            done
+          fi
+        }
+        
+        # Browsers
+        echo ""
+        echo "=== Browsers ==="
+        nuke_package "google-chrome-stable"
+        nuke_package "firefox"
+        nuke_package "microsoft-edge-stable"
+        
+        # Databases
+        echo ""
+        echo "=== Databases ==="
+        nuke_pattern "mysql" "MySQL"
+        nuke_pattern "postgresql" "PostgreSQL"
+        nuke_pattern "mongodb" "MongoDB"
+        
+        # Cloud CLIs
+        echo ""
+        echo "=== Cloud CLIs ==="
+        nuke_package "azure-cli"
+        nuke_package "google-cloud-sdk"
+        nuke_package "google-cloud-cli"
+        nuke_package "aws-cli"
+        nuke_package "awscli"
+        
+        echo ""
+        echo "Nuke complete!"
         echo ""
 
     # ============================================

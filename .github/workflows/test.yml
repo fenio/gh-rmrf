@@ -12,6 +12,7 @@ on:
         options:
           - all
           - cleanup-only
+          - nuke
           - merge-ext4
           - merge-btrfs
 
@@ -40,7 +41,32 @@ jobs:
           rm test-file.txt
           echo "Workspace is writable!"
 
-  # Test 2: Merge disks with ext4
+  # Test 2: Nuke packages (experimental)
+  test-nuke:
+    if: ${{ github.event_name == 'push' || github.event.inputs.test-mode == 'all' || github.event.inputs.test-mode == 'nuke' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run GTFO with nuke
+        uses: ./
+        with:
+          remove-android: 'true'
+          remove-dotnet: 'true'
+          remove-haskell: 'true'
+          remove-boost: 'true'
+          remove-swift: 'true'
+          remove-docker-images: 'true'
+          nuke: 'true'
+          merge-disks: 'false'
+      - name: Verify workspace is writable
+        run: |
+          echo "Testing workspace write access..."
+          echo "test" > test-file.txt
+          cat test-file.txt
+          rm test-file.txt
+          echo "Workspace is writable!"
+
+  # Test 3: Merge disks with ext4
   # NOTE: For merge tests, we must run the action BEFORE checking out to /home/runner/work
   # since the merge creates a fresh filesystem there. We inline the action logic for testing.
   test-merge-ext4:
@@ -167,7 +193,7 @@ jobs:
           rm test-file.txt
           echo "Merged workspace is functional!"
 
-  # Test 3: Merge disks with Btrfs + compression
+  # Test 4: Merge disks with Btrfs + compression
   # NOTE: For merge tests, we inline the action logic since merge creates a fresh filesystem
   test-merge-btrfs:
     if: ${{ github.event_name == 'push' || github.event.inputs.test-mode == 'all' || github.event.inputs.test-mode == 'merge-btrfs' }}

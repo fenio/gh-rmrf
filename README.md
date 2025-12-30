@@ -75,6 +75,7 @@ Uses Btrfs with zstd compression for the merged volume.
     remove-codeql: 'true'           # ~1GB
     remove-hostedtoolcache: 'false' # ~8GB - Go, Node.js, Python, Ruby, etc.
     remove-docker-images: 'false'   # ~4GB
+    nuke: 'false'                   # Experimental: nuke browsers, databases, cloud CLIs
     merge-disks: 'false'
     use-btrfs: 'false'
 ```
@@ -91,6 +92,7 @@ Uses Btrfs with zstd compression for the merged volume.
 | `remove-codeql` | Remove CodeQL (~1GB) | `true` |
 | `remove-hostedtoolcache` | Remove cached tool versions - Go, Node.js, Python, Ruby, etc. (~8GB) | `false` |
 | `remove-docker-images` | Remove Docker images (~4GB) | `false` |
+| `nuke` | Experimental: Remove browsers, databases, cloud CLIs via dpkg | `false` |
 | `merge-disks` | Merge root and /mnt into single LVM volume | `false` |
 | `use-btrfs` | Use Btrfs with zstd compression (requires merge-disks) | `false` |
 
@@ -135,6 +137,9 @@ Uses Btrfs with zstd compression for the merged volume.
 | `/usr/share/swift` | ~1.5GB | `remove-swift` |
 | `/opt/hostedtoolcache/CodeQL` | ~1GB | `remove-codeql` |
 | Docker images | ~4GB | `remove-docker-images` |
+| Browsers (Chrome, Firefox, Edge) | ~1GB | `nuke` |
+| Databases (MySQL, PostgreSQL, MongoDB) | ~1GB | `nuke` |
+| Cloud CLIs (Azure, GCloud, AWS) | ~2GB | `nuke` |
 
 ## License
 

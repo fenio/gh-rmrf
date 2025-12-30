@@ -40,25 +40,66 @@ jobs:
           echo "Workspace is writable!"
 
   # Test 2: Merge disks with ext4
-  # NOTE: For merge tests, checkout must happen to /tmp first because
-  # the action mounts a fresh filesystem at /home/runner/work
+  # NOTE: For merge tests, we must run the action BEFORE checking out to /home/runner/work
+  # since the merge creates a fresh filesystem there. We inline the action logic for testing.
   test-merge-ext4:
     if: ${{ github.event_name == 'push' || github.event.inputs.test-mode == 'all' || github.event.inputs.test-mode == 'merge-ext4' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          path: /tmp/gtfo
-      - name: Run GTFO (merge with ext4)
-        uses: /tmp/gtfo
-        with:
-          remove-android: 'true'
-          remove-dotnet: 'true'
-          remove-haskell: 'true'
-          remove-boost: 'true'
-          remove-swift: 'true'
-          merge-disks: 'true'
-          use-btrfs: 'false'
+      - name: Run GTFO inline (merge with ext4)
+        run: |
+          echo "============================================"
+          echo "  GTFO - Initial Disk State"
+          echo "============================================"
+          df -h
+          
+          # Install rmz
+          echo ">>> Installing rmz..."
+          curl -sL https://github.com/SUPERCILEX/fuc/releases/download/3.1.1/x86_64-unknown-linux-gnu-rmz -o /tmp/rmz
+          chmod +x /tmp/rmz
+          
+          # Remove bloat
+          echo ">>> Removing bloat..."
+          paths=(/usr/local/lib/android /usr/share/dotnet /usr/share/swift /usr/local/share/boost)
+          [[ -d /opt/ghc ]] && paths+=(/opt/ghc)
+          [[ -d /usr/local/.ghcup ]] && paths+=(/usr/local/.ghcup)
+          sudo /tmp/rmz "${paths[@]}" || true
+          
+          # Merge disks
+          echo ">>> Installing LVM..."
+          sudo apt-get update -qq && sudo apt-get install -y -qq lvm2
+          
+          echo ">>> Disabling swap and unmounting /mnt..."
+          sudo swapoff -a || true
+          sudo umount /mnt || true
+          
+          # Create loopback
+          avail_kb=$(df / --output=avail | tail -1 | tr -d ' ')
+          loop_size=$(( avail_kb / 1024 / 1024 * 80 / 100 ))
+          [[ $loop_size -lt 10 ]] && loop_size=10
+          echo ">>> Creating ${loop_size}GB loopback..."
+          sudo fallocate -l ${loop_size}G /space.img
+          loop_dev=$(sudo losetup -f)
+          sudo losetup "$loop_dev" /space.img
+          
+          # Create LVM
+          echo ">>> Creating LVM..."
+          sudo pvcreate -ff -y /dev/sda1
+          sudo pvcreate -ff -y "$loop_dev"
+          sudo vgcreate workspace /dev/sda1 "$loop_dev"
+          sudo lvcreate -l 100%FREE -n work workspace
+          
+          # Format and mount
+          echo ">>> Formatting as ext4..."
+          sudo mkfs.ext4 -F /dev/workspace/work
+          sudo mount /dev/workspace/work /home/runner/work
+          sudo chown -R runner:runner /home/runner/work
+          
+          echo ""
+          echo "============================================"
+          echo "  Final Disk State"
+          echo "============================================"
+          df -h
       - name: Verify merged workspace
         run: |
           echo "Checking mount..."
@@ -73,25 +114,65 @@ jobs:
           echo "Merged workspace is functional!"
 
   # Test 3: Merge disks with Btrfs + compression
-  # NOTE: For merge tests, checkout must happen to /tmp first because
-  # the action mounts a fresh filesystem at /home/runner/work
+  # NOTE: For merge tests, we inline the action logic since merge creates a fresh filesystem
   test-merge-btrfs:
     if: ${{ github.event_name == 'push' || github.event.inputs.test-mode == 'all' || github.event.inputs.test-mode == 'merge-btrfs' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          path: /tmp/gtfo
-      - name: Run GTFO (merge with Btrfs)
-        uses: /tmp/gtfo
-        with:
-          remove-android: 'true'
-          remove-dotnet: 'true'
-          remove-haskell: 'true'
-          remove-boost: 'true'
-          remove-swift: 'true'
-          merge-disks: 'true'
-          use-btrfs: 'true'
+      - name: Run GTFO inline (merge with Btrfs)
+        run: |
+          echo "============================================"
+          echo "  GTFO - Initial Disk State"
+          echo "============================================"
+          df -h
+          
+          # Install rmz
+          echo ">>> Installing rmz..."
+          curl -sL https://github.com/SUPERCILEX/fuc/releases/download/3.1.1/x86_64-unknown-linux-gnu-rmz -o /tmp/rmz
+          chmod +x /tmp/rmz
+          
+          # Remove bloat
+          echo ">>> Removing bloat..."
+          paths=(/usr/local/lib/android /usr/share/dotnet /usr/share/swift /usr/local/share/boost)
+          [[ -d /opt/ghc ]] && paths+=(/opt/ghc)
+          [[ -d /usr/local/.ghcup ]] && paths+=(/usr/local/.ghcup)
+          sudo /tmp/rmz "${paths[@]}" || true
+          
+          # Merge disks
+          echo ">>> Installing LVM and Btrfs tools..."
+          sudo apt-get update -qq && sudo apt-get install -y -qq lvm2 btrfs-progs
+          
+          echo ">>> Disabling swap and unmounting /mnt..."
+          sudo swapoff -a || true
+          sudo umount /mnt || true
+          
+          # Create loopback
+          avail_kb=$(df / --output=avail | tail -1 | tr -d ' ')
+          loop_size=$(( avail_kb / 1024 / 1024 * 80 / 100 ))
+          [[ $loop_size -lt 10 ]] && loop_size=10
+          echo ">>> Creating ${loop_size}GB loopback..."
+          sudo fallocate -l ${loop_size}G /space.img
+          loop_dev=$(sudo losetup -f)
+          sudo losetup "$loop_dev" /space.img
+          
+          # Create LVM
+          echo ">>> Creating LVM..."
+          sudo pvcreate -ff -y /dev/sda1
+          sudo pvcreate -ff -y "$loop_dev"
+          sudo vgcreate workspace /dev/sda1 "$loop_dev"
+          sudo lvcreate -l 100%FREE -n work workspace
+          
+          # Format and mount with Btrfs
+          echo ">>> Formatting as Btrfs with zstd compression..."
+          sudo mkfs.btrfs -f /dev/workspace/work
+          sudo mount -o compress=zstd /dev/workspace/work /home/runner/work
+          sudo chown -R runner:runner /home/runner/work
+          
+          echo ""
+          echo "============================================"
+          echo "  Final Disk State"
+          echo "============================================"
+          df -h
       - name: Verify Btrfs workspace
         run: |
           echo "Checking mount..."

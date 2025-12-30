@@ -1,0 +1,12 @@
+name: Test GTFO
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  test-ubuntu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./

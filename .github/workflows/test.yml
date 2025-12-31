@@ -635,7 +635,7 @@ jobs:
                    /usr/local/share/boost /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache; do
             if [[ -d "$p" ]]; then
               echo "  Found: $p"
-              ((paths_found++))
+              paths_found=$((paths_found + 1))
             fi
           done
           echo ">>> Found $paths_found bloat directories (expected: 0 on slim)"
